@@ -18,11 +18,11 @@ By comparing reaction times and errors between these blocks, you can estimate an
 ## Folder Structure You Need
 
 The images must be in these folders:
-- `material/shc_aat_material/background_shc` (files like `shc1.png` to `shc25.png`)
-- `material/shc_aat_material/background_fhc` (files like `fhc1.png` to `fhc25.png`)
+- `SHC_Implicit/material/shc_aat_material/background_shc` (files like `shc1.png` to `shc25.png`)
+- `SHC_Implicit/material/shc_aat_material/background_fhc` (files like `fhc1.png` to `fhc25.png`)
 
 The script also supports the old legacy path:
-- `vaast images and script/shc_aat_material/...`
+- `SHC_Implicit/material/shc_aat_material/...`
 
 ## Before You Run
 
@@ -181,7 +181,7 @@ After a complete run, files are saved in `data/`:
 ## Troubleshooting
 
 - Error says image folder not found:
-  - Check that `material/shc_aat_material/background_shc` and `background_fhc` exist.
+  - Check that `SHC_Implicit/material/shc_aat_material/background_shc` and `background_fhc` exist.
 - Script does not start because PsychoPy is missing:
   - Run from a Python environment where PsychoPy is installed, or use PsychoPy's Python.
 - Task closes immediately:

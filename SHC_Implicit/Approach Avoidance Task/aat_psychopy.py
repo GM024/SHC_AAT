@@ -38,6 +38,7 @@ def resolve_image_root_dir() -> Path:
     # Support both the original folder name and the current material folder.
     candidates = [
         PROJECT_DIR / "material" / "shc_aat_material",
+        PROJECT_DIR.parent / "material" / "shc_aat_material",
         PROJECT_DIR / "vaast images and script" / "shc_aat_material",
         Path.cwd() / "material" / "shc_aat_material",
         Path.cwd() / "vaast images and script" / "shc_aat_material",

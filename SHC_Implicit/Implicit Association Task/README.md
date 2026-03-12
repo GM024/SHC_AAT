@@ -67,8 +67,8 @@ Block 1 (attribute practice) is also aligned to the first combined mapping side 
 
 The script loads from:
 
-- `material/background_shc/` (SHC images)
-- `material/DIRTI_database/DIRTI Database/` (attribute images)
+- `SHC_Implicit/material/background_shc/` (SHC images)
+- `SHC_Implicit/material/DIRTI_database/DIRTI Database/` (attribute images)
 
 Pattern split in current script:
 - Disease: `*injuries_infections*.jpg`, `*hygiene*.jpg`, `*body products*.jpg`
