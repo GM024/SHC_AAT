@@ -17,13 +17,55 @@ from psychopy import core, event, gui, visual
 # =====================================================================
 # STIMULUS FOLDERS / PATTERNS (edit here)
 # =====================================================================
-STIM_ROOT = Path(__file__).resolve().parents[1] / "material"
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def resolve_stim_root():
+    candidates = [
+        SCRIPT_DIR / "material",
+        SCRIPT_DIR.parent / "material",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def resolve_existing_dir(candidates, label):
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    candidate_text = "\n".join(str(candidate) for candidate in candidates)
+    raise RuntimeError(f"Could not locate {label}. Checked:\n{candidate_text}")
+
+
+def resolve_shc_dir(stim_root: Path):
+    candidates = [
+        stim_root / "background_shc",
+        stim_root / "background_SHC",
+        stim_root / "shc_aat_material" / "background_shc",
+        stim_root / "shc_aat_material" / "background_SHC",
+    ]
+    return resolve_existing_dir(candidates, "SHC stimulus folder")
+
+
+def resolve_dirti_dir(stim_root: Path):
+    candidates = [
+        stim_root / "DIRTI_database" / "DIRTI Database",
+        stim_root / "DIRTI Database",
+        stim_root / "danger" / "DIRTI_database" / "DIRTI Database",
+        stim_root / "danger" / "DIRTI Database",
+    ]
+    return resolve_existing_dir(candidates, "DIRTI stimulus folder")
+
+
+STIM_ROOT = resolve_stim_root()
 
 # SHC images
-SHC_DIR = STIM_ROOT / "background_shc"
+SHC_DIR = resolve_shc_dir(STIM_ROOT)
 
 # DIRTI source folder used for both attribute categories
-DIRTI_DIR = STIM_ROOT / "DIRTI_database" / "DIRTI Database"
+DIRTI_DIR = resolve_dirti_dir(STIM_ROOT)
 
 # File-name patterns used to split DIRTI into attribute categories.
 DISEASE_PATTERNS = ["*injuries_infections*.jpg", "*hygiene*.jpg", "*body products*.jpg"]
