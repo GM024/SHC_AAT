@@ -1,13 +1,5 @@
 DIRTI_database/
-
-# PsychoPy builder/runtime exports created locally
-Approach Avoidance Task/*.psyexp
-Approach Avoidance Task/data/*.psyexp
-Approach Avoidance Task/data/*.csv
-Approach Avoidance Task/data/*.psydat
-Approach Avoidance Task/data/psychopy_internal/
-Implicit Association Task/data/*.csv
-Implicit Association Task/data/*.psydat
+data/
 
 # Local analysis/session files
 .Rhistory

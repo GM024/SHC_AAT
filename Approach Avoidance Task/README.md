@@ -49,7 +49,7 @@ Then:
 ## Participant Controls
 
 Participants can respond with keyboard or joystick:
-- Joystick movement (primary): move forward = approach, move backward = avoid
+- Joystick movement (primary): move backward = approach, move forward = avoid
 - Keyboard backup keys: `Q` = approach, `M` = avoid
 - `ESC` quits the task
 
@@ -59,12 +59,12 @@ Each trial:
 1. Fixation cross (`+`) for 0.5 seconds
 2. One clothing image appears
 3. Response:
-   - Practice trials: continue until correct response is made
-   - Test trials: response window up to 3.5 seconds
+   - If the first response is incorrect, an `X` appears over the picture
+   - The picture stays visible and the trial does not advance
+   - The participant must make the correct response to continue
 4. Short approach/avoid animation after a response
-5. Brief pause before next trial
 
-Error feedback is shown only in practice blocks; test blocks have no on-screen error feedback.
+This correction rule is used in both practice and test blocks.
 
 ## Practice Blocks and Feedback
 
@@ -75,13 +75,10 @@ Before each real test block, participants complete a short practice block with t
 - Practice before Incongruent test block:
   - approach FHC, avoid SHC
 
-Practice-only correction rule:
+Correction rule in practice and test blocks:
 - If an incorrect action is made, a **red X** appears.
-- The red X stays on screen until the participant makes the correct action.
-
-In real test blocks:
-- No red X correction feedback is shown.
-- Incorrect responses are only stored in the data.
+- The clothing picture stays visible underneath the X.
+- The trial continues immediately after the participant makes the correct action.
 
 ## Counterbalancing (Detailed Explanation)
 
@@ -130,14 +127,14 @@ Total task flow is therefore:
 - **116 scheduled trials** (100 test + 16 practice)
 
 Important:
-- In practice, incorrect responses trigger correction with a red X until correct.
-- Because of this, the number of response attempts in practice can be higher than 16.
+- Incorrect responses trigger correction with a red X until the correct response is made in both practice and test blocks.
+- Because of this, the number of response attempts can be higher than the number of scheduled trials.
 
 ## Output Files
 
 After a complete run, files are saved in `data/`:
-- `*_AAT_PsychoPy_*.csv` (main analysis file)
-- `*_AAT_PsychoPy_*.psydat` (PsychoPy internal file)
+- `*_AAT_PsychoPy_*.csv` (raw PsychoPy wide-text export)
+- `*_AAT_PsychoPy_*_cleaned.csv` (cleaned trial-level analysis file)
 
 ## Most Important CSV Columns (Quick Meaning)
 
@@ -146,9 +143,13 @@ After a complete run, files are saved in `data/`:
 - `image_name`: which picture was shown
 - `category`: `SHC` (second-hand) or `FHC` (first-hand)
 - `required_action`: what participant should do on that trial
-- `response_action`: what participant actually did
-- `correct`: `1` correct, `0` incorrect or no response
-- `rt`: reaction time in seconds
+- `response_action`: the participant's first response on that trial
+- `correct`: `1` if the first response was correct, `0` if correction was needed
+- `rt`: main analysis RT in seconds, measured from picture onset to the correct response that ended the trial
+- `first_rt`: reaction time of the first response in seconds
+- `final_rt`: reaction time of the correct response that ended the trial
+- `incorrect_attempts`: number of incorrect responses before the correct one
+- `task_duration_s`: total task duration in seconds
 
 ## Full CSV Codebook
 
@@ -160,16 +161,23 @@ After a complete run, files are saved in `data/`:
 - `trial_in_block`: trial number within current block
 - `trial_global`: trial number across whole task (`1..100`)
 - `image_name`: stimulus filename (for example `shc7.png`)
-- `image_path`: full path to stimulus file used
 - `category`: `SHC` or `FHC`
 - `stimulus_number`: number extracted from filename (`1..25`)
 - `clothing_type`: `shirt`, `pants`, `jacket`, `hoodie`, `beanie`
 - `required_action`: expected response (`approach` or `avoid`)
-- `response_key`: raw input token (`q`, `m`, `joy_axis_down`, `joy_axis_up`, or empty)
-- `response_source`: `keyboard_button`, `joystick`, or empty
-- `response_action`: mapped action (`approach`, `avoid`, or empty)
-- `correct`: `1` = response matched required action, `0` = incorrect or no response
-- `rt`: reaction time in seconds (empty if no response)
+- `response_key`: raw input token for the first response (`q`, `m`, `joy_axis_down`, `joy_axis_up`)
+- `response_source`: input source for the first response (`keyboard_button` or `joystick`)
+- `response_action`: mapped first response (`approach` or `avoid`)
+- `correct`: `1` = first response matched required action, `0` = first response was incorrect
+- `rt`: correct-response reaction time in seconds, measured from picture onset to the response that ended the trial
+- `first_rt`: first-response reaction time in seconds
+- `final_response_key`: raw input token for the correct response that ended the trial
+- `final_response_source`: input source for the correct response that ended the trial
+- `final_response_action`: mapped correct response that ended the trial
+- `final_rt`: same correct-response reaction time stored explicitly for clarity
+- `incorrect_attempts`: number of incorrect responses before the correct one
+- `correction_required`: `1` if at least one incorrect response occurred, `0` otherwise
+- `task_duration_s`: total duration of the task in seconds, repeated on each trial row for convenience
 
 ## Recommended Basic Checks After Running
 
