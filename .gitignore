@@ -1,1 +1,26 @@
 DIRTI_database/
+
+# PsychoPy builder/runtime exports created locally
+Approach Avoidance Task/*.psyexp
+Approach Avoidance Task/data/*.psyexp
+Approach Avoidance Task/data/*.csv
+Approach Avoidance Task/data/*.psydat
+Approach Avoidance Task/data/psychopy_internal/
+Implicit Association Task/data/*.csv
+Implicit Association Task/data/*.psydat
+
+# Local analysis/session files
+.Rhistory
+.RData
+.Rapp.history
+
+# Local backups
+*.bak.*
+
+# Python/editor/macOS noise
+__pycache__/
+*.py[cod]
+*.swp
+*.swo
+*~
+.DS_Store

@@ -59,17 +59,24 @@ def resolve_dirti_dir(stim_root: Path):
     return resolve_existing_dir(candidates, "DIRTI stimulus folder")
 
 
+def resolve_danger_dir(stim_root: Path):
+    candidates = [
+        stim_root / "danger",
+    ]
+    return resolve_existing_dir(candidates, "danger stimulus folder")
 STIM_ROOT = resolve_stim_root()
 
 # SHC images
 SHC_DIR = resolve_shc_dir(STIM_ROOT)
 
-# DIRTI source folder used for both attribute categories
+# DIRTI source folder used for disease/disgust attribute stimuli
 DIRTI_DIR = resolve_dirti_dir(STIM_ROOT)
 
-# File-name patterns used to split DIRTI into attribute categories.
+# Curated danger/fear images used instead of the former death-image pool.
+DANGER_DIR = resolve_danger_dir(STIM_ROOT)
+
+# File-name patterns used to split DIRTI into disease/disgust attribute stimuli.
 DISEASE_PATTERNS = ["*injuries_infections*.jpg", "*hygiene*.jpg", "*body products*.jpg"]
-DANGER_PATTERNS = ["*death*.jpg"]
 
 VALID_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"}
 
@@ -83,12 +90,15 @@ TRIALS_BLOCK_3 = 72   # Combined test
 TRIALS_BLOCK_4 = 24   # Reversed combined practice
 TRIALS_BLOCK_5 = 72   # Reversed combined test
 
+EXPECTED_TOTAL_TEST_TRIALS = TRIALS_BLOCK_3 + TRIALS_BLOCK_5
+
 
 # =====================================================================
 # TIMING PARAMETERS (edit here)
 # =====================================================================
 FIXATION_SEC = 0.30
 ITI_SEC = 0.15
+IMAGE_BOUND_SIZE = (0.55, 0.55)
 
 
 # =====================================================================
@@ -233,6 +243,29 @@ def build_blocks(version_cfg):
     return blocks
 
 
+def validate_block_schedule(blocks):
+    expected_trials = {
+        1: TRIALS_BLOCK_1,
+        2: TRIALS_BLOCK_2,
+        3: TRIALS_BLOCK_3,
+        4: TRIALS_BLOCK_4,
+        5: TRIALS_BLOCK_5,
+    }
+    for block in blocks:
+        expected_count = expected_trials[block["block_num"]]
+        if block["n_trials"] != expected_count:
+            raise RuntimeError(
+                f"Block {block['block_num']} is configured for {block['n_trials']} trials, "
+                f"expected {expected_count}."
+            )
+
+    total_test_trials = sum(block["n_trials"] for block in blocks if block["block_type"] == "test")
+    if total_test_trials != EXPECTED_TOTAL_TEST_TRIALS:
+        raise RuntimeError(
+            f"Test blocks total {total_test_trials} trials, expected {EXPECTED_TOTAL_TEST_TRIALS}."
+        )
+
+
 def build_block_trials(block, stimulus_pools):
     recipe = block["trial_recipe"]  # category -> correct key
     categories = list(recipe.keys())
@@ -261,30 +294,146 @@ def build_block_trials(block, stimulus_pools):
     return trials
 
 
+def display_category_name(category_name):
+    if category_name == CAT_DISEASE:
+        return "disease/disgust"
+    if category_name == CAT_DANGER:
+        return "danger/fear"
+    return category_name
+
+
 def labels_for_block(block):
     recipe = block["trial_recipe"]
-    left_cats = [cat for cat, key in recipe.items() if key == KEY_LEFT]
-    right_cats = [cat for cat, key in recipe.items() if key == KEY_RIGHT]
+    left_cats = [display_category_name(cat) for cat, key in recipe.items() if key == KEY_LEFT]
+    right_cats = [display_category_name(cat) for cat, key in recipe.items() if key == KEY_RIGHT]
     left_label = f"LEFT ({KEY_LEFT.upper()}): " + " + ".join(left_cats)
     right_label = f"RIGHT ({KEY_RIGHT.upper()}): " + " + ".join(right_cats)
     return left_label, right_label
 
 
 def mapping_display_name(mapping_name):
+    if mapping_name == "Disease vs Danger":
+        return "disease/disgust vs danger/fear"
     if mapping_name == "shc_disease_vs_danger":
-        return "SHC + Disease vs Danger"
+        return "SHC + disease/disgust vs danger/fear"
     if mapping_name == "shc_danger_vs_disease":
-        return "SHC + Danger vs Disease"
+        return "SHC + danger/fear vs disease/disgust"
     return mapping_name
 
 
-def show_instruction(win, text):
-    txt = visual.TextStim(win, text=text, color="white", height=0.035, wrapWidth=1.5)
-    txt.draw()
-    win.flip()
+def instruction_categories(label_text):
+    if ":" in label_text:
+        return label_text.split(":", 1)[1].strip()
+    return label_text.replace(f"({KEY_LEFT.upper()})", "").replace(f"({KEY_RIGHT.upper()})", "").strip()
+
+
+def highlighted_segments(text):
+    highlights = [f"'{KEY_LEFT.upper()}'", f"'{KEY_RIGHT.upper()}'", "SPACE"]
+    segments = []
+    cursor = 0
+    while cursor < len(text):
+        next_match = None
+        for token in highlights:
+            idx = text.find(token, cursor)
+            if idx == -1:
+                continue
+            if next_match is None or idx < next_match[0]:
+                next_match = (idx, token)
+        if next_match is None:
+            segments.append((text[cursor:], "white"))
+            break
+        idx, token = next_match
+        if idx > cursor:
+            segments.append((text[cursor:idx], "white"))
+        segments.append((token, "red"))
+        cursor = idx + len(token)
+    return [(segment, color) for segment, color in segments if segment]
+
+
+def draw_highlighted_line(win, line_text, y_pos, height_px):
+    segments = highlighted_segments(line_text)
+    if not segments:
+        return
+
+    stims = [
+        visual.TextStim(win, text=segment, color=color, units="pix", height=height_px)
+        for segment, color in segments
+    ]
+    total_width = sum(stim.boundingBox[0] for stim in stims)
+    x_pos = -total_width / 2
+    for stim in stims:
+        stim.pos = (x_pos + stim.boundingBox[0] / 2, y_pos)
+        stim.draw()
+        x_pos += stim.boundingBox[0]
+
+
+def wait_for_instruction_advance():
     keys = event.waitKeys(keyList=["space"] + QUIT_KEYS)
     if keys and keys[0] in QUIT_KEYS:
         core.quit()
+
+
+def show_instruction(win, text):
+    lines = text.splitlines()
+    line_height_px = 42
+    text_height_px = 28
+    start_y = ((len(lines) - 1) * line_height_px) / 2
+    for idx, line in enumerate(lines):
+        if line:
+            draw_highlighted_line(win, line, start_y - idx * line_height_px, text_height_px)
+    win.flip()
+    wait_for_instruction_advance()
+
+
+def show_block_instruction(win, title, text):
+    title_stim = visual.TextStim(win, text=title, color="white", units="pix", height=40, pos=(0.0, 170), bold=True)
+    title_stim.draw()
+    lines = text.splitlines()
+    line_height_px = 42
+    text_height_px = 28
+    start_y = 95
+    for idx, line in enumerate(lines):
+        if line:
+            draw_highlighted_line(win, line, start_y - idx * line_height_px, text_height_px)
+    win.flip()
+    wait_for_instruction_advance()
+
+
+def show_titled_instruction(win, title, text):
+    title_stim = visual.TextStim(win, text=title, color="white", units="pix", height=40, pos=(0.0, 185), bold=True)
+    title_stim.draw()
+    lines = [line for line in text.splitlines() if line.strip()]
+    line_height_px = 48
+    text_height_px = 26
+    start_y = 105
+    for idx, line in enumerate(lines):
+        draw_highlighted_line(win, line, start_y - idx * line_height_px, text_height_px)
+    win.flip()
+    wait_for_instruction_advance()
+
+
+def fit_image_preserve_aspect(image_stim):
+    orig_size = getattr(image_stim, "_origSize", None)
+    if not orig_size or len(orig_size) != 2:
+        image_stim.size = IMAGE_BOUND_SIZE
+        return
+
+    orig_w, orig_h = orig_size
+    if not orig_w or not orig_h:
+        image_stim.size = IMAGE_BOUND_SIZE
+        return
+
+    max_w, max_h = IMAGE_BOUND_SIZE
+    scale = min(max_w / orig_w, max_h / orig_h)
+    image_stim.size = (orig_w * scale, orig_h * scale)
+
+
+def draw_trial_frame(image_stim, left_label_stim, right_label_stim, error_stim=None):
+    image_stim.draw()
+    if error_stim is not None:
+        error_stim.draw()
+    left_label_stim.draw()
+    right_label_stim.draw()
 
 
 def run_trial(win, image_stim, fixation_stim, left_label_stim, right_label_stim, error_stim, trial):
@@ -300,30 +449,48 @@ def run_trial(win, image_stim, fixation_stim, left_label_stim, right_label_stim,
     # Start response collection from a clean state at stimulus onset.
     event.clearEvents(eventType="keyboard")
     image_stim.image = trial["stimulus_file"]
-    image_stim.draw()
-    left_label_stim.draw()
-    right_label_stim.draw()
+    fit_image_preserve_aspect(image_stim)
+    draw_trial_frame(image_stim, left_label_stim, right_label_stim)
     win.flip()
 
     timer = core.Clock()
+    first_pressed_key = None
+    first_rt_sec = None
+    incorrect_attempts = 0
+    show_error = False
     while True:
         keys = event.getKeys(keyList=[KEY_LEFT, KEY_RIGHT] + QUIT_KEYS, timeStamped=timer)
         if not keys:
+            core.wait(0.001)
             continue
         pressed_key, rt_sec = keys[0]
         if pressed_key in QUIT_KEYS:
             core.quit()
+        if first_pressed_key is None:
+            first_pressed_key = pressed_key
+            first_rt_sec = rt_sec
         if pressed_key == trial["correct_response"]:
             core.wait(ITI_SEC)
-            return pressed_key, rt_sec, 1
+            return {
+                "participant_response": first_pressed_key,
+                "final_response": pressed_key,
+                "first_rt_sec": first_rt_sec,
+                "rt_sec": rt_sec,
+                "final_rt_sec": rt_sec,
+                "correct": int(first_pressed_key == trial["correct_response"]),
+                "incorrect_attempts": incorrect_attempts,
+                "correction_required": int(incorrect_attempts > 0),
+            }
 
-        error_stim.draw()
-        left_label_stim.draw()
-        right_label_stim.draw()
+        incorrect_attempts += 1
+        show_error = True
+        draw_trial_frame(
+            image_stim,
+            left_label_stim,
+            right_label_stim,
+            error_stim=error_stim if show_error else None,
+        )
         win.flip()
-        event.waitKeys(keyList=[trial["correct_response"]] + QUIT_KEYS)
-        core.wait(ITI_SEC)
-        return pressed_key, rt_sec, 0
 
 
 def main():
@@ -332,12 +499,14 @@ def main():
     stimuli = {
         CAT_SHC: load_stimuli(SHC_DIR),
         CAT_DISEASE: load_stimuli_from_patterns(DIRTI_DIR, DISEASE_PATTERNS),
-        CAT_DANGER: load_stimuli_from_patterns(DIRTI_DIR, DANGER_PATTERNS),
+        CAT_DANGER: load_stimuli(DANGER_DIR),
     }
 
     dlg = gui.Dlg(title="SC-IAT Setup")
     dlg.addText("Task version is assigned automatically from Participant ID.")
     dlg.addField("Participant ID:")
+    if hasattr(dlg, "requiredMsg"):
+        dlg.requiredMsg.hide()
     dlg_data = dlg.show()
     if not dlg.OK:
         return
@@ -354,16 +523,17 @@ def main():
     version_cfg = get_version_config(iat_version)
 
     blocks = build_blocks(version_cfg)
+    validate_block_schedule(blocks)
 
     data_dir = Path(__file__).resolve().parent / "data"
     data_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_csv = data_dir / f"sciat_{participant_id}_v{iat_version}_{ts}.csv"
 
-    win = visual.Window(size=(1200, 800), fullscr=False, color=(-0.1, -0.1, -0.1), units="height")
-    image_stim = visual.ImageStim(win, size=(0.55, 0.55), pos=(0.0, 0.0))
+    win = visual.Window(size=(1200, 800), fullscr=True, color=(-0.1, -0.1, -0.1), units="height")
+    image_stim = visual.ImageStim(win, size=IMAGE_BOUND_SIZE, pos=(0.0, 0.0))
     fixation_stim = visual.TextStim(win, text="+", color="white", height=0.06)
-    error_stim = visual.TextStim(win, text="X", color="red", height=0.12, pos=(0.0, -0.2))
+    error_stim = visual.TextStim(win, text="X", color="red", height=0.18, pos=(0.0, 0.0), bold=True)
     left_label_stim = visual.TextStim(
         win,
         color="white",
@@ -385,13 +555,17 @@ def main():
         wrapWidth=0.46,
     )
 
-    show_instruction(
+    show_titled_instruction(
         win,
-        f"You will categorize images using two keys.\n\n"
-        "In this task, SHC stands for Second-hand clothing.\n\n"
-        f"Press '{KEY_LEFT.upper()}' for the left category and '{KEY_RIGHT.upper()}' for the right category.\n"
+        "Instructions",
+        "You will categorize images using two keys.\n"
+        "In this task, SHC stands for second-hand clothing.\n"
+        f"Press '{KEY_LEFT.upper()}' for the left category and\n"
+        f"'{KEY_RIGHT.upper()}' for the right category.\n"
         "Respond as quickly and accurately as possible.\n"
-        "If you make an incorrect response, a red X will appear and remain on the screen until you press the correct key.\n\n"
+        "If your first response is incorrect, a red X will appear while\n"
+        "the picture and labels stay visible on the screen.\n"
+        "Press the correct key to continue to the next trial.\n"
         "Press SPACE to start.",
     )
 
@@ -412,8 +586,13 @@ def main():
         "stimulus_category",
         "correct_response",
         "participant_response",
+        "final_response",
+        "first_rt_sec",
         "rt_sec",
+        "final_rt_sec",
         "correct",
+        "incorrect_attempts",
+        "correction_required",
     ]
 
     global_trial = 0
@@ -426,20 +605,21 @@ def main():
             left_label_stim.text = left_label
             right_label_stim.text = right_label
 
-            show_instruction(
+            show_block_instruction(
                 win,
-                f"{block['block_name']} ({block['block_type']})\n\n"
+                block["block_name"],
                 f"Mapping: {mapping_display_name(block['mapping_name'])}\n\n"
-                f"Press '{KEY_LEFT.upper()}' for {left_label.replace(chr(10), ' ')}.\n"
-                f"Press '{KEY_RIGHT.upper()}' for {right_label.replace(chr(10), ' ')}.\n\n"
-                "If you respond incorrectly, a red X will stay visible until you press the correct key.\n\n"
+                f"Press '{KEY_LEFT.upper()}' for LEFT: {instruction_categories(left_label).replace(chr(10), ' ')}.\n"
+                f"Press '{KEY_RIGHT.upper()}' for RIGHT: {instruction_categories(right_label).replace(chr(10), ' ')}.\n\n"
+                "If your first response is incorrect, a red X will appear while the picture and labels stay visible.\n"
+                "Press the correct key to continue to the next trial.\n\n"
                 "Press SPACE when you are ready.",
             )
 
             trials = build_block_trials(block, stimuli)
             for t_idx, trial in enumerate(trials, start=1):
                 global_trial += 1
-                pressed_key, rt_sec, correct = run_trial(
+                response_data = run_trial(
                     win,
                     image_stim,
                     fixation_stim,
@@ -466,9 +646,20 @@ def main():
                         "stimulus_filename": Path(trial["stimulus_file"]).name,
                         "stimulus_category": trial["stimulus_category"],
                         "correct_response": trial["correct_response"],
-                        "participant_response": pressed_key,
-                        "rt_sec": round(rt_sec, 4) if rt_sec is not None else "",
-                        "correct": correct,
+                        "participant_response": response_data["participant_response"],
+                        "final_response": response_data["final_response"],
+                        "first_rt_sec": round(response_data["first_rt_sec"], 4)
+                        if response_data["first_rt_sec"] is not None
+                        else "",
+                        "rt_sec": round(response_data["rt_sec"], 4)
+                        if response_data["rt_sec"] is not None
+                        else "",
+                        "final_rt_sec": round(response_data["final_rt_sec"], 4)
+                        if response_data["final_rt_sec"] is not None
+                        else "",
+                        "correct": response_data["correct"],
+                        "incorrect_attempts": response_data["incorrect_attempts"],
+                        "correction_required": response_data["correction_required"],
                     }
                 )
 
