@@ -1,0 +1,9 @@
+# Only the shc_aat_material tree is needed to run the current AAT.
+material/*
+!material/shc_aat_material/
+!material/shc_aat_material/**
+
+# The current AAT code reads flat image files from background_shc/background_fhc.
+# Nested variant folders under those runtime image folders are not used.
+material/shc_aat_material/background_shc/*/
+material/shc_aat_material/background_fhc/*/

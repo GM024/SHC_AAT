@@ -1,5 +1,6 @@
 DIRTI_database/
 data/
+**/data/
 
 # Local analysis/session files
 .Rhistory
@@ -9,10 +10,28 @@ data/
 # Local backups
 *.bak.*
 
-# Python/editor/macOS noise
+# Python bytecode and cache directories
 __pycache__/
 *.py[cod]
+cache/
+**/cache/
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# Local virtual environments
+.venv/
+
+# Editor and OS noise
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db

@@ -1,15 +1,6 @@
 # SHC Implicit Tasks
 
-<p align="center">
-  <img src="https://img.shields.io/badge/PsychoPy-task%20suite-89b4fa?style=for-the-badge&labelColor=1e1e2e&color=89b4fa" alt="PsychoPy task suite">
-  <img src="https://img.shields.io/badge/AAT-approach%20avoidance-a6e3a1?style=for-the-badge&labelColor=1e1e2e&color=a6e3a1" alt="AAT">
-  <img src="https://img.shields.io/badge/SC--IAT-implicit%20association-f5c2e7?style=for-the-badge&labelColor=1e1e2e&color=f5c2e7" alt="SC-IAT">
-  <img src="https://img.shields.io/badge/theme-Catppuccin%20Mocha-cba6f7?style=for-the-badge&labelColor=1e1e2e&color=cba6f7" alt="Catppuccin Mocha">
-</p>
-
-<p align="center">
-  PsychoPy tasks for second-hand clothing research, with one repo-level landing page for the main branch.
-</p>
+This repository contains the launchers for participant assignment, `IAT`, and `AAT`.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
@@ -26,81 +17,95 @@
 flowchart LR
     A["SHC_implicitlocal"] --> B["Approach Avoidance Task"]
     A --> C["Implicit Association Task"]
-    B --> B1["aat_psychopy.py"]
+    B --> B1["AAT Task Script"]
     B --> B2["task README"]
-    C --> C1["iat_psychopy.py"]
+    C --> C1["IAT Task Script"]
     C --> C2["task README"]
 ```
 
-## Overview
+## macOS
 
-This repository contains two PsychoPy-based implicit tasks built around second-hand clothing (`SHC`):
+### Install
 
-- `Approach Avoidance Task` measures approach versus avoidance tendencies toward `SHC` and `FHC`.
-- `Implicit Association Task` measures associations between `SHC` and attribute categories such as `disease/disgust` and `danger/fear`.
-
-## Task Cards
-
-<table>
-  <tr>
-    <td valign="top" width="50%">
-      <h3>Approach Avoidance Task</h3>
-      <p><strong>Folder:</strong> <a href="./Approach%20Avoidance%20Task/">Approach Avoidance Task</a></p>
-      <p><strong>Script:</strong> <code>aat_psychopy.py</code></p>
-      <p><strong>Primary input:</strong> joystick</p>
-      <p><strong>Keyboard backup:</strong> <code>Q</code> = approach, <code>M</code> = avoid</p>
-      <p><strong>Design:</strong> congruent and incongruent blocks with practice before each test block</p>
-      <p><strong>Docs:</strong> <a href="./Approach%20Avoidance%20Task/README.md">task guide</a></p>
-    </td>
-    <td valign="top" width="50%">
-      <h3>Implicit Association Task</h3>
-      <p><strong>Folder:</strong> <a href="./Implicit%20Association%20Task/">Implicit Association Task</a></p>
-      <p><strong>Script:</strong> <code>iat_psychopy.py</code></p>
-      <p><strong>Keys:</strong> <code>E</code> = left, <code>I</code> = right</p>
-      <p><strong>Design:</strong> single-category IAT with 4 counterbalanced versions</p>
-      <p><strong>Stimuli:</strong> SHC images plus disease/disgust and danger/fear attributes</p>
-      <p><strong>Docs:</strong> <a href="./Implicit%20Association%20Task/README.md">task guide</a></p>
-    </td>
-  </tr>
-</table>
-
-## Repository Layout
-
-```text
-SHC_implicitlocal/
-├── Approach Avoidance Task/
-│   ├── aat_psychopy.py
-│   ├── README.md
-│   └── material/
-├── Implicit Association Task/
-│   ├── iat_psychopy.py
-│   ├── README.md
-│   └── material/
-└── .gitignore
-```
-
-## Quick Start
-
-1. Open the task folder you want to run.
-2. Make sure PsychoPy is available in the active Python environment.
-3. Place any local, non-versioned stimulus assets in the expected task folders.
-4. Run one of the task scripts:
+Run:
 
 ```bash
-cd "Approach Avoidance Task"
-python3 aat_psychopy.py
+./setup_experiment_env.sh
 ```
+
+This creates `.venv-experiment310` and installs the required packages from [requirements-experiment.txt](./requirements-experiment.txt).
+
+If the launchers should use a different Python interpreter, set:
 
 ```bash
-cd "Implicit Association Task"
-python3 iat_psychopy.py
+export MRP_PYTHON=/path/to/python
 ```
 
-## What Each Task Saves
+If the logbook should live somewhere else, set:
 
-| Task | Saved output | Notes |
-| --- | --- | --- |
-| AAT | raw PsychoPy CSV plus cleaned trial-level CSV | written into the task `data/` folder |
-| SC-IAT | trial-level CSV | written into the task `data/` folder |
+```bash
+export MRP_LOGBOOK_PATH=/path/to/MRP_Logbook.xlsx
+```
 
-Both tasks implement correction logic, so the analysis RT reflects the response that correctly ends the trial rather than an initial incorrect keypress.
+### Run
+
+1. Open the participant assignment GUI:
+   [`Mac scripts/launch_participant_assignment.command`](./Mac%20scripts/launch_participant_assignment.command)
+2. Run the practice script for the starting task:
+   [`Mac scripts/launch_iat_practice.command`](./Mac%20scripts/launch_iat_practice.command) or [`Mac scripts/launch_aat_practice.command`](./Mac%20scripts/launch_aat_practice.command)
+3. Run the matching main script:
+   [`Mac scripts/launch_iat_main.command`](./Mac%20scripts/launch_iat_main.command) or [`Mac scripts/launch_aat_main.command`](./Mac%20scripts/launch_aat_main.command)
+
+Optional checks before live use:
+
+```bash
+python "Verification scripts/check_experiment_env.py"
+python "Verification scripts/iat_validate.py"
+python "Verification scripts/aat_validate.py"
+python "Verification scripts/pilot_verify.py"
+```
+
+## Windows
+
+### Install
+
+Preferred:
+
+- install `PsychoPy Standalone`
+- make sure `openpyxl` is available in the same Python
+
+Or create a dedicated Python `3.10` environment:
+
+```bat
+setup_experiment_env_windows.bat
+```
+
+If the launchers should use a different Python interpreter, set:
+
+```bat
+set MRP_PYTHON=C:\path\to\python.exe
+```
+
+If the logbook should live somewhere else, set:
+
+```bat
+set MRP_LOGBOOK_PATH=C:\path\to\MRP_Logbook.xlsx
+```
+
+### Run
+
+1. Open the participant assignment GUI:
+   [`Windows scripts/launch_participant_assignment.bat`](./Windows%20scripts/launch_participant_assignment.bat)
+2. Run the practice script for the starting task:
+   [`Windows scripts/launch_iat_practice.bat`](./Windows%20scripts/launch_iat_practice.bat) or [`Windows scripts/launch_aat_practice.bat`](./Windows%20scripts/launch_aat_practice.bat)
+3. Run the matching main script:
+   [`Windows scripts/launch_iat_main.bat`](./Windows%20scripts/launch_iat_main.bat) or [`Windows scripts/launch_aat_main.bat`](./Windows%20scripts/launch_aat_main.bat)
+
+Optional checks before live use:
+
+```bat
+python "Verification scripts\check_experiment_env.py"
+python "Verification scripts\iat_validate.py"
+python "Verification scripts\aat_validate.py"
+python "Verification scripts\pilot_verify.py"
+```

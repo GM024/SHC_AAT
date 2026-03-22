@@ -1,1 +1,21 @@
+# Only these runtime stimulus folders are needed here:
+# - material/background_shc/
+# - material/disgust/
+# - material/danger/accepted/
+material/*
+!material/background_shc/
+!material/background_shc/**
+!material/disgust/
+!material/disgust/**
+!material/danger/
+
+# Legacy disease/disgust locations are no longer used.
 material/DIRTI_database/
+material/DIRTI Database/
+material/danger/DIRTI_database/
+material/danger/DIRTI Database/
+
+# Only the curated danger set is used by the current IAT.
+material/danger/*
+!material/danger/accepted/
+!material/danger/accepted/**

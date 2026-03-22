@@ -1,6 +1,11 @@
 # PsychoPy AAT Task Guide (Plain Language)
 
-This folder contains an **Approach-Avoidance Task (AAT)** about clothing images.
+This folder contains a split **Approach-Avoidance Task (AAT)** workflow about clothing images:
+
+- `AAT Task Script/aat_practice.py`: dedicated practice run
+- `AAT Task Script/aat_main.py`: dedicated main run
+- `AAT Task Script/aat_core.py`: shared task logic
+- `../Verification scripts/aat_validate.py`: dry-run validator
 
 In simple terms:
 - Participants see clothing pictures.
@@ -27,7 +32,7 @@ The script also supports the old legacy path:
 ## Before You Run
 
 1. Make sure PsychoPy is installed and working.
-2. Make sure this file exists: `aat_psychopy.py`.
+2. Make sure `openpyxl` is also installed if you want automatic logbook writing.
 3. Make sure both image folders above exist and contain the image sets.
 4. Open Terminal in this project folder.
 
@@ -36,15 +41,29 @@ The script also supports the old legacy path:
 Run:
 
 ```bash
-python3 aat_psychopy.py
+python3 "AAT Task Script/aat_practice.py"
+python3 "AAT Task Script/aat_main.py"
+```
+
+To validate the non-UI AAT schedule without launching PsychoPy:
+
+```bash
+python3 "../Verification scripts/aat_validate.py"
 ```
 
 Then:
-1. A small dialog asks for `participant` and `session`.
+1. A small dialog asks for the participant phone last-4, optional alias, and researcher.
 2. Enter IDs and press OK.
 3. Read the on-screen instructions.
-4. For each block, complete a short practice first.
-5. Press `SPACE` to start and continue between parts.
+4. `AAT Task Script/aat_practice.py` runs practice only.
+5. `AAT Task Script/aat_main.py` runs the main task only and asks for the session number (`1`, `2`, or `3`).
+6. Press `SPACE` to start and continue between parts.
+
+Task-order group and smell-order group are resolved automatically from the shared logbook balance state. To look them up before a session starts:
+
+```bash
+python3 "../Verification scripts/participant_assignment.py" 0123
+```
 
 ## Participant Controls
 
@@ -68,11 +87,11 @@ This correction rule is used in both practice and test blocks.
 
 ## Practice Blocks and Feedback
 
-Before each real test block, participants complete a short practice block with the same mapping.
+Practice is now a separate script and keeps the current short-block structure.
 
-- Practice before Congruent test block:
+- Practice block 1:
   - approach SHC, avoid FHC
-- Practice before Incongruent test block:
+- Practice block 2:
   - approach FHC, avoid SHC
 
 Correction rule in practice and test blocks:
@@ -101,8 +120,7 @@ So the required response mapping is reversed between the two blocks.
 Order depends on the numeric participant ID entered at the start:
 - **Even participant number** (e.g., 2, 4, 12): Congruent first, then Incongruent
 - **Odd participant number** (e.g., 1, 3, 11): Incongruent first, then Congruent
-
-If the participant field has no digits, the script treats it like participant `1` (odd).
+The input must be exactly the last `4` digits of the participant's phone number.
 
 ### Why this is useful
 
@@ -112,18 +130,37 @@ Across the full task, every participant sees both mappings:
 
 This means each stimulus category is both approached and avoided once across the experiment, which helps isolate the congruency effect from simple motor habits.
 
-## Current Trial Counts (From Current Code)
+## Practice, Main, and Smell Sessions
+
+- `aat_practice.py`
+  - always runs as `session 0`
+  - always uses `control_no_smell`
+  - saves its own raw and cleaned output
+- `aat_main.py`
+  - runs as `session 1`, `2`, or `3`
+  - maps the session to the smell condition through the selected smell-order group
+  - uses the same counterbalance assignment as the legacy task
+
+The smell-condition groups are:
+- `control_clean_then_isovaleric`
+- `control_isovaleric_then_clean`
+
+Task order across the full experiment is tracked separately as:
+- `IAT_block_first`
+- `AAT_block_first`
+
+## Current Trial Counts
 
 - Test blocks:
   - 2 test blocks total
   - 50 trials per test block
   - **100 test trials total** (these are the trials logged in the main CSV)
 - Practice blocks:
-  - 2 practice blocks total (one before each test block)
+  - 2 practice blocks total in `aat_practice.py`
   - 8 scheduled practice trials per practice block (4 SHC + 4 FHC)
   - **16 scheduled practice trials total**
 
-Total task flow is therefore:
+Combined across `aat_practice.py` and `aat_main.py`, the task flow is:
 - **116 scheduled trials** (100 test + 16 practice)
 
 Important:
@@ -132,30 +169,52 @@ Important:
 
 ## Output Files
 
-After a complete run, files are saved in `data/`:
-- `*_AAT_PsychoPy_*.csv` (raw PsychoPy wide-text export)
-- `*_AAT_PsychoPy_*_cleaned.csv` (cleaned trial-level analysis file)
+After a run, files are saved in `data/`:
+- `aat_practice_pid<last4>_s0_control_no_smell_<timestamp>.csv`
+- `aat_practice_pid<last4>_s0_control_no_smell_<timestamp>_cleaned.csv`
+- `aat_main_pid<last4>_s<session>_<condition>_<timestamp>.csv`
+- `aat_main_pid<last4>_s<session>_<condition>_<timestamp>_cleaned.csv`
+
+The raw PsychoPy export and the cleaned analysis file are both kept.
+
+Each completed, interrupted, or invalid run also writes metadata to the shared workbook:
+- `mrp_local/logbook/MRP_Logbook.xlsx`
 
 ## Most Important CSV Columns (Quick Meaning)
 
 - `participant`, `session`: IDs entered at start
+- `participant_code`: formatted as `pid####`
+- `task`, `script_type`: whether this row came from `AAT practice` or `AAT main`
+- `condition`, `smell_order_group`, `task_order_group`: experiment metadata
+- `task_start_time_iso`: when the task started
+- `trial_end_time_iso`: when the current trial row was recorded
+- `time_elapsed_ms`: milliseconds elapsed since task start
 - `block_name`: Congruent or Incongruent
 - `image_name`: which picture was shown
 - `category`: `SHC` (second-hand) or `FHC` (first-hand)
 - `required_action`: what participant should do on that trial
 - `response_action`: the participant's first response on that trial
 - `correct`: `1` if the first response was correct, `0` if correction was needed
+- `rt_ms`: main analysis RT in milliseconds
 - `rt`: main analysis RT in seconds, measured from picture onset to the correct response that ended the trial
-- `first_rt`: reaction time of the first response in seconds
-- `final_rt`: reaction time of the correct response that ended the trial
 - `incorrect_attempts`: number of incorrect responses before the correct one
+- `task_duration_ms`: total task duration in milliseconds
 - `task_duration_s`: total task duration in seconds
 
 ## Full CSV Codebook
 
 - `participant`: participant ID entered in dialog
+- `participant_code`: participant code formatted as `pid####`
 - `session`: session ID entered in dialog
+- `task`: `AAT`
+- `script_type`: `practice` or `main`
+- `condition`: `control_no_smell`, `clean_odour`, or `isovaleric_acid`
+- `smell_order_group`: smell-order assignment
+- `task_order_group`: whether `IAT` or `AAT` came first across the experiment
 - `counterbalance`: `A` (even participant) or `B` (odd participant)
+- `task_start_time_iso`: ISO timestamp when the task started
+- `trial_end_time_iso`: ISO timestamp when the row was recorded
+- `time_elapsed_ms`: milliseconds elapsed since task start
 - `block_number`: `1` or `2` in run order
 - `block_name`: `Congruent` or `Incongruent`
 - `trial_in_block`: trial number within current block
@@ -169,22 +228,25 @@ After a complete run, files are saved in `data/`:
 - `response_source`: input source for the first response (`keyboard_button` or `joystick`)
 - `response_action`: mapped first response (`approach` or `avoid`)
 - `correct`: `1` = first response matched required action, `0` = first response was incorrect
+- `rt_ms`: correct-response reaction time in milliseconds
 - `rt`: correct-response reaction time in seconds, measured from picture onset to the response that ended the trial
-- `first_rt`: first-response reaction time in seconds
 - `final_response_key`: raw input token for the correct response that ended the trial
 - `final_response_source`: input source for the correct response that ended the trial
 - `final_response_action`: mapped correct response that ended the trial
-- `final_rt`: same correct-response reaction time stored explicitly for clarity
 - `incorrect_attempts`: number of incorrect responses before the correct one
 - `correction_required`: `1` if at least one incorrect response occurred, `0` otherwise
+- `task_duration_ms`: total duration of the task in milliseconds, repeated on each row for convenience
 - `task_duration_s`: total duration of the task in seconds, repeated on each trial row for convenience
+
+The second-based timing fields are currently retained as legacy compatibility fields during the transition to milliseconds.
 
 ## Recommended Basic Checks After Running
 
 1. Confirm a new CSV file appears in `data/`.
-2. Open the CSV and check there are 100 rows (excluding header).
+2. For `aat_main.py`, open the cleaned CSV and check there are `100` rows (excluding header).
 3. Confirm both `Congruent` and `Incongruent` appear in `block_name`.
 4. Confirm `rt` has values on most trials.
+5. Confirm the shared logbook workbook has a new `Runs` entry for the task.
 
 ## Troubleshooting
 
@@ -192,5 +254,7 @@ After a complete run, files are saved in `data/`:
   - Check that `SHC_Implicit/material/shc_aat_material/background_shc` and `background_fhc` exist.
 - Script does not start because PsychoPy is missing:
   - Run from a Python environment where PsychoPy is installed, or use PsychoPy's Python.
+- Logbook write fails:
+  - Install `openpyxl` in the same Python environment that runs the task.
 - Task closes immediately:
   - Check if `ESC` was pressed, or if the start dialog was canceled.
